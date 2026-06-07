@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ profile.user.username }}'s Portfolio</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- FontAwesome for Social Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+      :root {
+        --primary-color: {{ profile.primary_color|default:"#6200ee" }};
+        --accent-color: {{ profile.accent_color|default:"#03dac6" }};
+        --font-family: '{{ profile.font_family|default:"Roboto" }}', sans-serif;
+        
+        /* Defaults (Material Style) */
+        --bg-color: #121212;
+        --surface-color: #1e1e1e;
+        --border-color: rgba(255, 255, 255, 0.08);
+        --text-main: #e1e1e1;
+        --text-muted: #a0a0a0;
+        --radius: 12px;
+        --shadow: 0 8px 32px rgba(0,0,0,0.4);
+        --glow: none;
+        --banner-height: 260px;
+        --backdrop: none;
+      }
+
+      /* Cyberpunk Glow Override */
+      {% if profile.template_choice == 'dark_cyber' %}
+      :root {
+        --bg-color: #05050a;
+        --surface-color: #0b0b14;
+        --border-color: var(--primary-color);
+        --text-main: #00ffcc;
+        --text-muted: #708090;
+        --radius: 0px; /* Sharp tech corners */
+        --shadow: 0 0 15px rgba(0, 255, 204, 0.15);
+        --glow: 0 0 10px var(--accent-color);
+      }
+      {% endif %}
+
+      /* Glassmorphism Override */
+      {% if profile.template_choice == 'glassmorphism' %}
+      :root {
+        --bg-color: #0c0f1f;
+        --surface-color: rgba(255, 255, 255, 0.05);
+        --border-color: rgba(255, 255, 255, 0.12);
+        --text-main: #ffffff;
+        --text-muted: rgba(255, 255, 255, 0.65);
+        --radius: 20px;
+        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        --backdrop: blur(16px);
+      }
+      {% endif %}
+
+      /* Minimalist Clean Override */
+      {% if profile.template_choice == 'minimalist' %}
+      :root {
+        --bg-color: #ffffff;
+        --surface-color: #ffffff;
+        --border-color: #eaeaea;
+        --text-main: #111111;
+        --text-muted: #666666;
+        --radius: 4px;
+        --shadow: none;
+        --primary-color: #000000;
+        --accent-color: #555555;
+      }
+      {% endif %}
+
+      /* Global Styles */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-family);
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        min-height: 100vh;
+        padding-bottom: 60px;
+        line-height: 1.6;
+        transition: background-color 0.3s;
+        
+        {% if profile.template_choice == 'glassmorphism' %}
+        /* Dynamic glass backdrop gradient */
+        background-image: 
+          radial-gradient(circle at 10% 20%, rgba({{ profile.primary_color|default:"98, 0, 238"|cut:"#" }}, 0.15) 0%, transparent 40%),
+          radial-gradient(circle at 90% 80%, rgba({{ profile.accent_color|default:"3, 218, 198"|cut:"#" }}, 0.15) 0%, transparent 40%);
+        background-attachment: fixed;
+        {% endif %}
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Floating Preview Header link */
+      .edit-indicator {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background-color: var(--primary-color);
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 50px;
+        text-decoration: none;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 1000;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: transform 0.2s;
+        border: 1px solid var(--border-color);
+      }
+      
+      .edit-indicator:hover {
+        transform: translateY(-3px);
+      }
+
+      /* Banner layout */
+      .banner {
+        height: var(--banner-height);
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid var(--border-color);
+        
+        {% if profile.banner_image %}
+        background: url('{{ profile.banner_image.url }}') center/cover;
+        {% else %}
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        {% endif %}
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-bottom: 3px solid var(--primary-color);
+        {% endif %}
+      }
+
+      .banner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%);
+      }
+
+      /* Profile Card Container */
+      .profile-wrapper {
+        margin-top: -80px;
+        position: relative;
+        z-index: 10;
+        margin-bottom: 40px;
+      }
+
+      .profile-card {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: var(--backdrop);
+        -webkit-backdrop-filter: var(--backdrop);
+        padding: 40px;
+        position: relative;
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-left: 5px solid var(--primary-color);
+        box-shadow: var(--shadow), 0 0 15px rgba(255, 0, 127, 0.1);
+        {% endif %}
+      }
+
+      /* Avatar styling */
+      .avatar-wrapper {
+        position: relative;
+        margin-top: -90px;
+        margin-bottom: 20px;
+        display: inline-block;
+      }
+
+      .avatar {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 5px solid var(--surface-color);
+        background-color: var(--bg-color);
+        object-fit: cover;
+        box-shadow: var(--shadow);
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-radius: 0;
+        border: 2px solid var(--primary-color);
+        box-shadow: 0 0 10px var(--primary-color);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        {% endif %}
+      }
+
+      .avatar-placeholder-large {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 5px solid var(--surface-color);
+        background-color: #333;
+        color: var(--accent-color);
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 800;
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-radius: 0;
+        border: 2px solid var(--primary-color);
+        box-shadow: 0 0 10px var(--primary-color);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        color: #000;
+        border: 1px solid var(--border-color);
+        {% endif %}
+      }
+
+      /* Typography */
+      .profile-name {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1.2;
+        margin-bottom: 4px;
+        letter-spacing: -0.5px;
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+        text-transform: uppercase;
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+        {% endif %}
+      }
+
+      .profile-title {
+        font-size: 1.15rem;
+        color: var(--accent-color);
+        font-weight: 600;
+        margin-bottom: 16px;
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        color: #ff007f;
+        text-shadow: 0 0 5px rgba(255, 0, 127, 0.4);
+        font-family: var(--font-mono);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #333;
+        {% endif %}
+      }
+
+      .profile-location {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+      }
+
+      .profile-bio {
+        font-size: 1.05rem;
+        color: var(--text-main);
+        max-width: 800px;
+        line-height: 1.7;
+        margin-bottom: 32px;
+        white-space: pre-line;
+        
+        {% if profile.template_choice == 'minimalist' %}
+        font-size: 0.95rem;
+        border-left: 2px solid #ccc;
+        padding-left: 20px;
+        {% endif %}
+      }
+
+      /* Social Links */
+      .social-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .social-icon-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background-color: rgba(255,255,255,0.05);
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border-color);
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-radius: 0;
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        border-radius: 4px;
+        background-color: transparent;
+        color: #000;
+        border: 1px solid #ddd;
+        {% endif %}
+      }
+
+      .social-icon-btn:hover {
+        background-color: var(--primary-color);
+        color: #ffffff;
+        transform: translateY(-3px);
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        box-shadow: 0 0 10px var(--primary-color);
+        background-color: transparent;
+        color: var(--primary-color);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        background-color: #000;
+        color: #fff;
+        border-color: #000;
+        {% endif %}
+      }
+
+      /* Projects / Portfolio Grid */
+      .section-heading {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 32px;
+        margin-top: 40px;
+        position: relative;
+        display: inline-block;
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        text-transform: uppercase;
+        font-family: var(--font-mono);
+        color: var(--accent-color);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        font-family: 'Playfair Display', serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        border-bottom: 2px solid #000;
+        padding-bottom: 6px;
+        {% endif %}
+      }
+      
+      {% if profile.template_choice == 'material' %}
+      .section-heading::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 0;
+        width: 40px;
+        height: 4px;
+        background-color: var(--accent-color);
+        border-radius: 2px;
+      }
+      {% endif %}
+
+      .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+      }
+
+      .project-card {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: var(--backdrop);
+        -webkit-backdrop-filter: var(--backdrop);
+        overflow: hidden;
+        transition: transform 0.3s, border-color 0.3s;
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-bottom: 3px solid var(--accent-color);
+        {% endif %}
+      }
+
+      .project-card:hover {
+        transform: translateY(-6px);
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        border-color: var(--accent-color);
+        box-shadow: 0 0 15px rgba(255, 0, 127, 0.2);
+        {% endif %}
+        
+        {% if profile.template_choice == 'minimalist' %}
+        border-color: #000;
+        {% endif %}
+      }
+
+      .project-img-wrapper {
+        position: relative;
+        aspect-ratio: 16/10;
+        overflow: hidden;
+        background-color: rgba(255,255,255,0.02);
+      }
+
+      .project-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+        display: block;
+      }
+
+      .project-card:hover .project-img {
+        transform: scale(1.08);
+      }
+
+      /* Adobe Portfolio Hover Overlay styling */
+      .project-body {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85); /* Default dark overlay */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+        opacity: 0;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 2;
+        
+        {% if profile.template_choice == 'minimalist' %}
+        background-color: rgba(255, 255, 255, 0.95);
+        {% endif %}
+      }
+
+      .project-card:hover .project-body {
+        opacity: 1;
+      }
+
+      .project-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+        transform: translateY(10px);
+        transition: transform 0.3s ease;
+        
+        {% if profile.template_choice == 'minimalist' %}
+        color: #000000;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        {% endif %}
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        color: var(--primary-color);
+        text-shadow: 0 0 5px var(--primary-color);
+        font-family: var(--font-mono);
+        {% endif %}
+      }
+
+      .project-card:hover .project-title {
+        transform: translateY(0);
+      }
+
+      .project-desc {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.4;
+        max-width: 90%;
+        transform: translateY(15px);
+        transition: transform 0.3s ease 0.05s;
+        
+        {% if profile.template_choice == 'minimalist' %}
+        color: #555555;
+        {% endif %}
+        
+        {% if profile.template_choice == 'dark_cyber' %}
+        color: var(--text-main);
+        font-family: var(--font-mono);
+        {% endif %}
+      }
+
+      .project-card:hover .project-desc {
+        transform: translateY(0);
+      }
+
+      .empty-portfolio {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        background-color: var(--surface-color);
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius);
+        color: var(--text-muted);
+        backdrop-filter: var(--backdrop);
+      }
+
+      /* Home link button on profiles */
+      .back-home {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.9rem;
+        margin-top: 24px;
+        transition: color 0.2s;
+      }
+
+      .back-home:hover {
+        color: var(--primary-color);
+      }
+
+      /* Futuristic Background Orbs (only active when FX is enabled) */
+      .bg-orbs {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+        z-index: 0;
+        pointer-events: none;
+        display: block;
+      }
+
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.15;
+        animation: floatOrb 20s infinite alternate ease-in-out;
+      }
+
+      .orb-1 {
+        width: 300px;
+        height: 300px;
+        background-color: var(--primary-color);
+        top: -100px;
+        left: -100px;
+        animation-duration: 25s;
+      }
+
+      .orb-2 {
+        width: 400px;
+        height: 400px;
+        background-color: var(--accent-color);
+        bottom: -150px;
+        right: -150px;
+        animation-duration: 35s;
+        animation-delay: -5s;
+      }
+
+      .orb-3 {
+        width: 250px;
+        height: 250px;
+        background-color: var(--primary-color);
+        top: 50%;
+        left: 80%;
+        animation-duration: 18s;
+        animation-delay: -8s;
+      }
+
+      @keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(50px, 80px) scale(1.2); }
+        100% { transform: translate(-30px, -40px) scale(0.9); }
+      }
+
+      /* Cyberpunk Scanlines overlay */
+      .scanlines {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          rgba(18, 16, 16, 0) 50%, 
+          rgba(0, 0, 0, 0.25) 50%
+        ), linear-gradient(
+          90deg, 
+          rgba(255, 0, 0, 0.06), 
+          rgba(0, 255, 0, 0.02), 
+          rgba(0, 0, 255, 0.06)
+        );
+        background-size: 100% 4px, 6px 100%;
+        z-index: 999;
+        pointer-events: none;
+        opacity: 0.45;
+        display: none;
+      }
+      
+      {% if profile.template_choice == 'dark_cyber' %}
+      .scanlines {
+        display: block;
+      }
+      {% endif %}
+
+      /* Laser Scan effect */
+      .laser-scan {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to right, transparent, var(--accent-color), transparent);
+        box-shadow: 0 0 8px var(--accent-color);
+        opacity: 0.35;
+        z-index: 1000;
+        pointer-events: none;
+        animation: laserScan 6s infinite linear;
+        display: none;
+      }
+      
+      {% if profile.template_choice == 'dark_cyber' %}
+      .laser-scan {
+        display: block;
+      }
+      {% endif %}
+
+      @keyframes laserScan {
+        0% { top: -5%; }
+        100% { top: 105%; }
+      }
+
+      /* Floating FX Toggle control */
+      .fx-toggle-container {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+      }
+
+      .fx-toggle-btn {
+        background: rgba(30, 30, 30, 0.7);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .fx-toggle-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 10px rgba(3, 218, 198, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .fx-active-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #4caf50;
+        box-shadow: 0 0 8px #4caf50;
+        display: inline-block;
+        transition: all 0.3s;
+      }
+
+      /* FX Disabled overrides (The "Don't opt for it" options) */
+      body.fx-disabled {
+        background-image: none !important;
+      }
+      body.fx-disabled .bg-orbs,
+      body.fx-disabled .scanlines,
+      body.fx-disabled .laser-scan {
+        display: none !important;
+      }
+      body.fx-disabled * {
+        animation: none !important;
+        transition: none !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+      }
+      body.fx-disabled .project-card {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        border-color: var(--border-color) !important;
+      }
+      body.fx-disabled .project-body {
+        opacity: 0 !important;
+        display: none !important; /* fallback to disable hover covers entirely */
+      }
+      body.fx-disabled .project-card:hover .project-body {
+        display: none !important;
+      }
+      /* In static/fx-disabled mode, show details below the card as standard basic fallback */
+      body.fx-disabled .project-card {
+        height: auto !important;
+        display: flex;
+        flex-direction: column;
+      }
+      body.fx-disabled .project-card-details-fallback {
+        display: block !important;
+        padding: 16px;
+        background-color: var(--surface-color);
+        border-top: 1px solid var(--border-color);
+      }
+      body.fx-disabled .fx-active-dot {
+        background-color: #f44336;
+        box-shadow: none;
+      }
+      body.fx-disabled .profile-card {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+      }
+
+      @media (max-width: 768px) {
+        .profile-card {
+          padding: 24px;
+        }
+        .avatar-wrapper {
+          margin-top: -70px;
+        }
+        .avatar, .avatar-placeholder-large {
+          width: 100px;
+          height: 100px;
+        }
+        .profile-name {
+          font-size: 1.8rem;
+        }
+        .projects-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Futuristic Decorative Elements -->
+    <div class="bg-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="scanlines"></div>
+    <div class="laser-scan"></div>
+
+    <!-- Floating FX Toggle (Opt-out option) -->
+    <div class="fx-toggle-container">
+      <button id="fx-toggle-btn" class="fx-toggle-btn" title="Toggle Futuristic Effects & Animations">
+        <span class="fx-active-dot"></span>
+        <span id="fx-btn-text">FX: Active</span>
+      </button>
+    </div>
+
+    <!-- Floating Admin/Edit links -->
+    {% if show_edit_link %}
+      <a href="{% url 'dashboard' %}" class="edit-indicator">
+        <span class="material-icons">edit</span>
+        <span>Edit My Profile</span>
+      </a>
+    {% endif %}
+
+    <!-- Private Warning Banner for the owner -->
+    {% if is_preview_private %}
+      <div style="background: linear-gradient(90deg, #ff9800 0%, #ff5722 100%); color: #ffffff; padding: 10px 24px; text-align: center; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 9999; position: sticky; top: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <span class="material-icons" style="font-size: 18px;">visibility_off</span>
+        <span>Preview Mode: Your profile is currently set to Private. Visited by others, it will display as locked.</span>
+        <a href="{% url 'dashboard' %}" style="color: #ffffff; text-decoration: underline; margin-left: 10px; font-weight: 700;">Dashboard Settings</a>
+      </div>
+    {% endif %}
+
+    {% if is_private_locked %}
+      <!-- Lock Screen -->
+      <div style="min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: var(--bg-color); padding: 24px; text-align: center; margin-top: 40px;">
+        <div style="max-width: 440px; width: 100%; background-color: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 48px 32px; box-shadow: var(--shadow); backdrop-filter: var(--backdrop); -webkit-backdrop-filter: var(--backdrop);">
+          <span class="material-icons" style="font-size: 64px; color: var(--accent-color); margin-bottom: 24px; text-shadow: var(--glow);">lock</span>
+          <h1 style="font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px; letter-spacing: -0.5px;">Private Portfolio</h1>
+          <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 0.95rem; line-height: 1.6;">
+            The portfolio belonging to <strong>{{ profile.user.username }}</strong> is currently set to private.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <a href="{% url 'home' %}" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background-color: var(--primary-color); color: #fff; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background-color 0.2s;">
+              <span class="material-icons" style="font-size: 16px;">explore</span>Back to Directory
+            </a>
+            {% if not request.user.is_authenticated %}
+              <a href="{% url 'login' %}?next={{ request.path }}" style="color: var(--accent-color); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-top: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+                <span class="material-icons" style="font-size: 14px;">login</span>Are you the owner? Sign in to view
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <!-- Top Hero Banner -->
+      <div class="banner">
+        <div class="banner-overlay"></div>
+      </div>
+
+      <!-- Profile details container -->
+      <div class="container profile-wrapper">
+        <div class="profile-card">
+          <div class="avatar-wrapper">
+            {% if profile.profile_picture %}
+              <img src="{{ profile.profile_picture.url }}" class="avatar" alt="{{ profile.user.username }}">
+            {% else %}
+              <div class="avatar-placeholder-large">
+                {{ profile.user.username|make_list|first|upper }}
+              </div>
+            {% endif %}
+          </div>
+
+          <h1 class="profile-name">{{ profile.user.username }}</h1>
+          <p class="profile-title">{{ profile.title|default:"Digital Creator" }}</p>
+          
+          <div class="profile-location">
+            <span class="material-icons" style="font-size: 16px;">place</span>
+            <span>{{ profile.location|default:"Earth" }}</span>
+          </div>
+
+          <p class="profile-bio">{{ profile.bio|default:"No bio written yet." }}</p>
+
+          <!-- Social Icons Row -->
+          {% if profile.github_url or profile.linkedin_url or profile.twitter_url or profile.website_url %}
+            <div class="social-row">
+              {% if profile.github_url %}
+                <a href="{{ profile.github_url }}" class="social-icon-btn" target="_blank" title="GitHub">
+                  <i class="fa-brands fa-github"></i>
+                </a>
+              {% endif %}
+              {% if profile.linkedin_url %}
+                <a href="{{ profile.linkedin_url }}" class="social-icon-btn" target="_blank" title="LinkedIn">
+                  <i class="fa-brands fa-linkedin-in"></i>
+                </a>
+              {% endif %}
+              {% if profile.twitter_url %}
+                <a href="{{ profile.twitter_url }}" class="social-icon-btn" target="_blank" title="Twitter">
+                  <i class="fa-brands fa-twitter"></i>
+                </a>
+              {% endif %}
+              {% if profile.website_url %}
+                <a href="{{ profile.website_url }}" class="social-icon-btn" target="_blank" title="Website">
+                  <i class="fa-solid fa-globe"></i>
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Portfolio Section -->
+        <h2 class="section-heading">Showcase Gallery</h2>
+
+        <div class="projects-grid">
+          {% if projects %}
+            {% for project in projects %}
+              <div class="project-card">
+                {% if project.image %}
+                  <div class="project-img-wrapper">
+                    <img src="{{ project.image.url }}" class="project-img" alt="{{ project.title }}">
+                  </div>
+                {% endif %}
+                <div class="project-body">
+                  <h3 class="project-title">{{ project.title|default:"Untitled Showcase" }}</h3>
+                  {% if project.description %}
+                    <p class="project-desc">{{ project.description }}</p>
+                  {% endif %}
+                </div>
+                <!-- Static Fallback details container when FX is disabled -->
+                <div class="project-card-details-fallback" style="display: none;">
+                  <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">{{ project.title|default:"Untitled Showcase" }}</h3>
+                  {% if project.description %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">{{ project.description }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-portfolio">
+              <span class="material-icons" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;">collections</span>
+              <p style="font-weight: 500;">No showcase items added yet.</p>
+              <p style="font-size: 0.85rem; margin-top: 4px;">Come back later to see updates!</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Home navigation -->
+        <div style="text-align: center; margin-top: 40px;">
+          <a href="{% url 'home' %}" class="back-home">
+            <span class="material-icons" style="font-size: 16px;">arrow_back</span>
+            <span>Back to CraftProfile Home</span>
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const body = document.body;
+        const fxBtn = document.getElementById('fx-toggle-btn');
+        const fxBtnText = document.getElementById('fx-btn-text');
+        
+        if (!fxBtn) return;
+
+        // Check local storage for FX preference
+        const fxPreference = localStorage.getItem('fx-enabled');
+        
+        // If preference is explicitly set to 'false', disable FX
+        if (fxPreference === 'false') {
+          body.classList.add('fx-disabled');
+          fxBtnText.textContent = 'FX: Off';
+        } else {
+          body.classList.remove('fx-disabled');
+          fxBtnText.textContent = 'FX: Active';
+        }
+
+        fxBtn.addEventListener('click', function() {
+          const isCurrentlyDisabled = body.classList.toggle('fx-disabled');
+          if (isCurrentlyDisabled) {
+            fxBtnText.textContent = 'FX: Off';
+            localStorage.setItem('fx-enabled', 'false');
+          } else {
+            fxBtnText.textContent = 'FX: Active';
+            localStorage.setItem('fx-enabled', 'true');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
